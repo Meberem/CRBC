@@ -1,0 +1,12 @@
+﻿@page
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@{
+    @functions{
+        public IActionResult OnGet()
+        {
+            return SignOut(new AuthenticationProperties { RedirectUri = "../Index" }, new string[] { CookieAuthenticationDefaults.AuthenticationScheme });
+        }
+    }
+}
+Logout failed

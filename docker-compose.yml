@@ -1,0 +1,8 @@
+version: '3.4'
+
+services:
+  crbc:
+    image: ${DOCKER_REGISTRY-}crbc
+    build:
+      context: .
+      dockerfile: CRBC/Dockerfile

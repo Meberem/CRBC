@@ -1,0 +1,126 @@
+﻿@page
+@using Microsoft.AspNetCore.Authentication
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authentication.Cookies
+@{
+    @functions{
+        [BindProperty]
+        [Display(Prompt = "First Name")]
+        [DataType(DataType.Text)]
+        [StringLength(50, MinimumLength = 3)]
+        [Required(ErrorMessage = "First name must be between 3-50 characters.")]
+        public string FirstName { get; set; }
+
+        [BindProperty]
+        [Display(Prompt = "Last Name")]
+        [DataType(DataType.Text)]
+        [StringLength(50, MinimumLength = 3)]
+        [Required(ErrorMessage = "Last name must be between 3-50 characters.")]
+        public string LastName { get; set; }
+
+        [BindProperty]
+        [Display(Prompt = "Enter email address")]
+        [DataType(DataType.EmailAddress)]
+        [StringLength(100, MinimumLength = 3)]
+        [Required(ErrorMessage = "Please enter a valid email that is 3 to 100 characters long.")]
+        public string Username { get; set; }
+
+        [BindProperty]
+        [Display(Prompt = "Password")]
+        [DataType(DataType.Password)]
+        [Required(ErrorMessage = "Please enter a password")]
+        public string Password { get; set; }
+
+        [BindProperty]
+        public string CreateAccountErrorMessage { get; set; }
+
+        [BindProperty]
+        public bool Success { get; set; }
+
+        public IActionResult OnPostCreate()
+        {
+            if (ModelState.IsValid)
+            {
+                using (MySqlConnection connection = new MySqlConnection(CRBCConfiguration.Value.ConnectionString))
+                {
+                    connection.Open();
+                    string sql = "select * from User where Username = @Username";
+
+                    UserInfo user = connection.Query<UserInfo>(sql, new { Username = Username }).FirstOrDefault();
+                    if (user != null)
+                    {
+                        CreateAccountErrorMessage = "User already exists";
+                    }
+                    else
+                    {
+                        string userGuid = Guid.NewGuid().ToString();
+                        string salt = SiteUtils.GenerateSaltedHash(Password, userGuid);
+                        UserInfo newUser = new UserInfo
+                        {
+                            ID = userGuid,
+                            Username = Username,
+                            Salt = salt,
+                            FirstName = FirstName,
+                            LastName = LastName,
+                            Role = UserRole.None
+                        };
+                        try
+                        {
+                            int id = connection.Execute("insert into User(ID,Username,Salt,FirstName,LastName,Role) values (@ID, @Username, @Salt, @FirstName, @LastName, @Role)",
+                            new
+                            {
+                                ID = newUser.ID,
+                                Username = newUser.Username,
+                                Salt = newUser.Salt,
+                                FirstName = newUser.FirstName,
+                                LastName = newUser.LastName,
+                                Role = newUser.Role
+                            });
+                            Success = true;
+                        }
+                        catch (Exception ex)
+                        {
+                            CreateAccountErrorMessage = ex.Message;
+                        }
+                    }
+                }
+            }
+            return Page();
+        }
+    }
+}
+@if (!Success)
+{
+    <div class="card">
+        <div class="card-body">
+            <h2 class="card-title text-center display-4">Create account</h2>
+            <form method="post" asp-page-handler="create">
+                <div class="form-group">
+                    @Html.EditorFor(x => x.FirstName, new { htmlAttributes = new { @class = "form-control" } })
+                    @Html.ValidationMessageFor(x => x.FirstName, null, new { @class = "text-danger" })
+                </div>
+                <div class="form-group">
+                    @Html.EditorFor(x => x.LastName, new { htmlAttributes = new { @class = "form-control" } })
+                    @Html.ValidationMessageFor(x => x.LastName, null, new { @class = "text-danger" })
+                </div>
+                <div class="form-group">
+                    @Html.EditorFor(x => x.Username, new { htmlAttributes = new { @class = "form-control" } })
+                    @Html.ValidationMessageFor(x => x.Username, null, new { @class = "text-danger" })
+                </div>
+                <div class="form-group">
+                    @Html.EditorFor(x => x.Password, new { htmlAttributes = new { @class = "form-control" } })
+                    @Html.ValidationMessageFor(x => x.Password, null, new { @class = "text-danger" })
+                </div>
+                @if (!string.IsNullOrEmpty(CreateAccountErrorMessage))
+                {
+                    <div class="text-danger">@CreateAccountErrorMessage</div>
+                }
+                    <input type="submit" class="btn btn-primary" />
+            </form>
+        </div>
+    </div>
+}
+else
+{
+    <div>Your account has been queued for approval. Contact Austin (Or Anna, Lydia, Jim, **insert other more reliable people that can contact Austin**) for a faster approval.</div>
+}

@@ -1,0 +1,19 @@
+services:
+  crbc:
+    build:
+      context: D:\Desktop\Demo\CRBC
+      dockerfile: CRBC/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_HTTPS_PORT: '44308'
+      ASPNETCORE_URLS: https://+:443;http://+:80
+    image: crbc
+    ports:
+    - published: 64785
+      target: 80
+    - published: 44308
+      target: 443
+    volumes:
+    - C:\Users\azmau\AppData\Roaming\ASP.NET\Https:/root/.aspnet/https:ro
+    - C:\Users\azmau\AppData\Roaming\Microsoft\UserSecrets:/root/.microsoft/usersecrets:ro
+version: '3.4'

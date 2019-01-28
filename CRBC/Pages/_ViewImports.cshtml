@@ -1,0 +1,10 @@
+@using CRBC
+@using CRBC.Objects
+@using Microsoft.Extensions.Options
+@using System.ComponentModel.DataAnnotations
+@using MySql.Data.MySqlClient
+@using Dapper
+@using Newtonsoft.Json
+@namespace CRBC.Pages
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@inject IOptions<CRBCConfig> CRBCConfiguration

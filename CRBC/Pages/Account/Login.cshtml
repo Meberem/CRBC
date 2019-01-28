@@ -1,0 +1,74 @@
+﻿@page
+@using Microsoft.AspNetCore.Authentication
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authentication.Cookies
+@{
+    @functions{
+        [BindProperty]
+        [Display(Prompt = "Username")]
+        [DataType(DataType.EmailAddress)]
+        [StringLength(100, MinimumLength = 3)]
+        [Required(ErrorMessage = "Please enter a username")]
+        public string Username { get; set; }
+
+        [BindProperty]
+        [Display(Prompt = "Password")]
+        [DataType(DataType.Password)]
+        [Required(ErrorMessage = "Please enter a password")]
+        public string Password { get; set; }
+
+        [BindProperty]
+        public string LoginErrorMessage { get; set; }
+
+        public IActionResult OnPostLogin()
+        {
+            if (ModelState.IsValid)
+            {
+                using (MySqlConnection connection = new MySqlConnection(CRBCConfiguration.Value.ConnectionString))
+                {
+                    connection.Open();
+                    string sql = "select * from User where Username = @Username";
+                    UserInfo result = connection.Query<UserInfo>(sql, new { Username = Username }).FirstOrDefault();
+                    if (result != null)
+                    {
+                        string hashedInput = SiteUtils.GenerateSaltedHash(Password, result.ID);
+                        bool authenticated = result.Salt == hashedInput;
+                        string scheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                        ClaimsIdentity claims = new ClaimsIdentity(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, Username) }, scheme));
+                        string userInfoJsonStr = JsonConvert.SerializeObject(result);
+                        Claim userInfoClaim = new Claim("userInfo", userInfoJsonStr);
+                        claims.AddClaim(userInfoClaim);
+                        ClaimsPrincipal claimsPrincipal = new ClaimsPrincipal(claims);
+                        AuthenticationProperties authenticationProperties = new AuthenticationProperties { RedirectUri = "Home" };
+                        return SignIn(claimsPrincipal, authenticationProperties, scheme);
+                    }
+                    else
+                    {
+                        LoginErrorMessage = "Login failed";
+                    }
+                }
+            }
+            return Page();
+        }
+    }
+}
+<div class="card">
+    <div class="card-body">
+        <h2 class="card-title text-center display-4">Login</h2>
+        <form method="post" asp-page-handler="login">
+            <div class="form-group">
+                @Html.EditorFor(x => x.Username, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.ValidationMessageFor(x => x.Username, null, new { @class = "text-danger" })
+            </div>
+            <div class="form-group">
+                @Html.EditorFor(x => x.Password, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.ValidationMessageFor(x => x.Password, null, new { @class = "text-danger" })
+            </div>
+            @if (!string.IsNullOrEmpty(LoginErrorMessage))
+            {
+                <div class="text-danger">@LoginErrorMessage</div>
+            }
+                <input type="submit" class="btn btn-primary" />
+        </form>
+    </div>
+</div>
