@@ -2,26 +2,11 @@ version: '3.4'
 
 services:
   webserver:
-    image: linuxserver/letsencrypt
     container_name: crbc-webserver
     links:
       - crbc:app1
     ports:
       - "80:80"
-      - "443:443"
-    environment:
-      - EMAIL=${ADMIN_EMAIL}
-      - URL=${BASE_URL}
-      - SUBDOMAINS=www
-      - TZ=America/NewYork
-      - VALIDATION=http
-      # - DNSPLUGIN=dnsimple # via dnsimple, note there is additional configuration require separate from this file
-      # - STAGING=true # this should be uncommented when testing for initial success, to avoid some rate limiting
-    volumes:
-      - ./letsencrypt-config:/config 
-      - ./nginx.conf:/config/nginx/site-confs/default
-    depends_on:
-      - crbc
   db:
     image: mysql:latest
     container_name: db

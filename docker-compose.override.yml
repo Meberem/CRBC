@@ -1,6 +1,10 @@
 version: '3.4'
 
 services:
+  webserver:
+    image: nginx
+    volumes:
+       - ./nginx.dev.conf:/etc/nginx/nginx.conf
   crbc:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
