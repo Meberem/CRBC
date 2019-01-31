@@ -3,17 +3,45 @@ services:
     build:
       context: D:\Desktop\Demo\CRBC
       dockerfile: CRBC/Dockerfile
+    depends_on:
+    - db
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ASPNETCORE_HTTPS_PORT: '44308'
-      ASPNETCORE_URLS: https://+:443;http://+:80
-    image: crbc
+      ASPNETCORE_URLS: http://+:5000
+      CRBCConfig__ConnectionString: server=db;uid=test;pwd=pwtest;database=CRBC
+  db:
+    container_name: db
+    environment:
+      MYSQL_DATABASE: CRBC
+      MYSQL_PASSWORD: pwtest
+      MYSQL_RANDOM_ROOT_PASSWORD: 1
+      MYSQL_USER: test
+    image: mysql:latest
     ports:
-    - published: 64785
+    - published: 3306
+      target: 3306
+    volumes:
+    - D:\Desktop\Demo\CRBC\init.sql:/docker-entrypoint-initdb.d/init.sql:rw
+  webserver:
+    container_name: crbc-webserver
+    depends_on:
+    - crbc
+    environment:
+      EMAIL: meberem@gmail.com
+      STAGING: "true"
+      SUBDOMAINS: www
+      TZ: America/NewYork
+      URL: meberem.com
+      VALIDATION: http
+    image: linuxserver/letsencrypt
+    links:
+    - crbc:app1
+    ports:
+    - published: 80
       target: 80
-    - published: 44308
+    - published: 443
       target: 443
     volumes:
-    - C:\Users\azmau\AppData\Roaming\ASP.NET\Https:/root/.aspnet/https:ro
-    - C:\Users\azmau\AppData\Roaming\Microsoft\UserSecrets:/root/.microsoft/usersecrets:ro
+    - D:\Desktop\Demo\CRBC\letsencrypt-config:/config:rw
+    - D:\Desktop\Demo\CRBC\nginx.conf:/config/nginx/site-confs/default:rw
 version: '3.4'
