@@ -1,8 +1,48 @@
 version: '3.4'
 
 services:
+  webserver:
+    image: linuxserver/letsencrypt
+    container_name: crbc-webserver
+    links:
+      - crbc:app1
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - EMAIL=${ADMIN_EMAIL}
+      - URL=${BASE_URL}
+      - SUBDOMAINS=www
+      - TZ=America/NewYork
+      - VALIDATION=http
+      # - DNSPLUGIN=dnsimple # via dnsimple, note there is additional configuration require separate from this file
+      # - STAGING=true # this should be uncommented when testing for initial success, to avoid some rate limiting
+    volumes:
+      - ./letsencrypt-config:/config 
+      - ./nginx.conf:/config/nginx/site-confs/default
+    depends_on:
+      - crbc
+  db:
+    image: mysql:latest
+    container_name: db
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_RANDOM_ROOT_PASSWORD: 1
+    volumes:
+      - ./init.sql/:/docker-entrypoint-initdb.d/init.sql
   crbc:
-    image: ${DOCKER_REGISTRY-}crbc
+    build:
+      context: ./CRBC
+      dockerfile: Dockerfile
+    environment:
+      - ASPNETCORE_URLS=http://+:5000
+      - CRBCConfig__ConnectionString=server=db;uid=${MYSQL_USER};pwd=${MYSQL_PASSWORD};database=${MYSQL_DATABASE}
     build:
       context: .
       dockerfile: CRBC/Dockerfile
+    depends_on:
+      - db
